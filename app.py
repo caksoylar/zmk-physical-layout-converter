@@ -1,3 +1,5 @@
+"""Converter between QMK-like and ZMK Studio DTS physical layout formats, with visualizer."""
+
 import io
 import json
 from textwrap import indent
@@ -6,7 +8,7 @@ import streamlit as st
 
 from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.config import DrawConfig
-from keymap_drawer.physical_layout import layout_factory, QmkLayout, _get_qmk_info
+from keymap_drawer.physical_layout import layout_factory, QmkLayout
 from keymap_drawer.parse.dts import DeviceTree
 
 DTS_TEMPLATE = """\
@@ -36,13 +38,14 @@ PHYSICAL_ATTR_PHANDLES = {"&key_physical_attrs"}
 
 
 @st.cache_data
-def get_initial_layout():
+def _get_initial_layout():
     with open("example.json", encoding="utf-8") as f:
         return f.read()
 
 
 @st.cache_data(max_entries=10)
 def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
+    """Convert given DTS string containing physical layouts to internal QMK layout format."""
     dts = DeviceTree(dts_str, None, True)
 
     bindings_to_position = {
@@ -60,9 +63,11 @@ def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
 
     out_layouts = {}
     for display_name, position_bindings in defined_layouts.items():
+        assert display_name is not None, "No `display_name` property found for a physical layout node"
+        assert position_bindings is not None, f'No `keys` property found for layout "{display_name}"'
         keys = []
-        for binding in position_bindings:
-            binding = binding.split()
+        for binding_arr in position_bindings:
+            binding = binding_arr.split()
             assert binding[0].lstrip("&") in bindings_to_position, f"Unrecognized position binding {binding[0]}"
             keys.append(bindings_to_position[binding[0].lstrip("&")](binding[1:]))
         out_layouts[display_name] = QmkLayout(layout=keys)
@@ -70,6 +75,7 @@ def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
 
 
 def layout_to_svg(qmk_layout: QmkLayout) -> str:
+    """Convert given internal QMK layout format to its SVG visualization."""
     physical_layout = qmk_layout.generate(60)
     with io.StringIO() as out:
         drawer = KeymapDrawer(
@@ -83,6 +89,7 @@ def layout_to_svg(qmk_layout: QmkLayout) -> str:
 
 
 def layouts_to_json(layouts_map: dict[str, QmkLayout]) -> str:
+    """Convert given internal QMK layout formats map to JSON representation."""
     out_layouts = {
         display_name: {"layout": qmk_layout.model_dump(exclude_defaults=True, exclude_unset=True)["layout"]}
         for display_name, qmk_layout in layouts_map.items()
@@ -91,7 +98,9 @@ def layouts_to_json(layouts_map: dict[str, QmkLayout]) -> str:
 
 
 def layouts_to_dts(layouts_map: dict[str, QmkLayout]) -> str:
-    def rot_to_str(rot: int) -> str:
+    """Convert given internal QMK layout formats map to DTS representation."""
+
+    def rot_to_str(rot: float) -> str:
         rot = int(100 * rot)
         if rot >= 0:
             return f"{rot:>7d}"
@@ -99,7 +108,7 @@ def layouts_to_dts(layouts_map: dict[str, QmkLayout]) -> str:
 
     pl_nodes = []
     for idx, (name, qmk_spec) in enumerate(layouts_map.items()):
-        keys =  KEYS_TEMPLATE.format(
+        keys = KEYS_TEMPLATE.format(
             key_attrs_string="\n    , ".join(
                 KEY_TEMPLATE.format(
                     w=int(100 * key.w),
@@ -117,7 +126,8 @@ def layouts_to_dts(layouts_map: dict[str, QmkLayout]) -> str:
     return DTS_TEMPLATE.format(pl_nodes=indent("\n".join(pl_nodes), "    "))
 
 
-def qmk_info_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
+def qmk_json_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
+    """Convert given QMK-style JSON string layouts format map to internal QMK layout formats map."""
     qmk_info = json.loads(qmk_info_str)
 
     if isinstance(qmk_info, list):
@@ -126,6 +136,7 @@ def qmk_info_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
 
 
 def ortho_to_layouts(ortho_layout: dict, cols_thumbs_notation: str) -> dict[str, QmkLayout]:
+    """Given ortho specs (ortho layout description or cols+thumbs notation) convert it to the internal QMK layout format."""
     p_layout = layout_factory(
         DrawConfig(key_w=1, key_h=1, split_gap=1),
         ortho_layout=ortho_layout,
@@ -139,6 +150,7 @@ def ortho_to_layouts(ortho_layout: dict, cols_thumbs_notation: str) -> dict[str,
 
 
 def main() -> None:
+    """Main body of the web app."""
     need_rerun = False
     if "layouts" not in st.session_state:
         st.session_state.layouts = None
@@ -149,6 +161,7 @@ def main() -> None:
     st.caption("Tool to convert and visualize physical layout representations for ZMK Studio")
 
     json_col, dts_col, svg_col = st.columns([0.25, 0.4, 0.35], vertical_alignment="top")
+
     with json_col:
         st.subheader(
             "JSON format description",
@@ -158,11 +171,15 @@ def main() -> None:
         if new_val := st.session_state.get("json_field_update"):
             st.session_state.json_field = new_val
             st.session_state.json_field_update = None
-        st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed", value=get_initial_layout())
+            initial_value = None
+        else:
+            initial_value = _get_initial_layout()
+        st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed", value=initial_value)
         update_from_json = st.button("Update DTS using this ➡️")
         if st.session_state.layouts is None or update_from_json:
-            st.session_state.layouts = qmk_info_to_layouts(st.session_state.json_field)
+            st.session_state.layouts = qmk_json_to_layouts(st.session_state.json_field)
             st.session_state.dts_field = layouts_to_dts(st.session_state.layouts)
+
     with dts_col:
         st.subheader(
             "ZMK DTS",
@@ -186,6 +203,7 @@ def main() -> None:
 
     if need_rerun:
         st.rerun()
+
 
 if __name__ == "__main__":
     main()
