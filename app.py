@@ -35,6 +35,13 @@ KEY_TEMPLATE = "<&key_physical_attrs {w:>3d} {h:>3d} {x:>4d} {y:>4d} {rot} {rx:>
 PHYSICAL_ATTR_PHANDLES = {"&key_physical_attrs"}
 
 
+@st.cache_data
+def get_initial_layout():
+    with open("example.json", encoding="utf-8") as f:
+        return f.read()
+
+
+@st.cache_data(max_entries=10)
 def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
     dts = DeviceTree(dts_str, None, True)
 
@@ -149,9 +156,9 @@ def main() -> None:
         if new_val := st.session_state.get("json_field_update"):
             st.session_state.json_field = new_val
             st.session_state.json_field_update = None
-        st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed")
+        st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed", value=get_initial_layout())
         update_from_json = st.button("Update DTS using this")
-        if update_from_json:
+        if st.session_state.layouts is None or update_from_json:
             st.session_state.layouts = qmk_info_to_layouts(st.session_state.json_field)
             st.session_state.dts_field = layouts_to_dts(st.session_state.layouts)
     with dts_col:
