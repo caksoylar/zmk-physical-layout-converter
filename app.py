@@ -51,10 +51,12 @@ def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
         }
     }
 
-    if not (nodes := dts.get_compatible_nodes("zmk,physical-layout")):
-        raise ValueError("No zmk,physical-layout nodes found")
-
-    defined_layouts = {node.get_string("display-name"): node.get_phandle_array("keys") for node in nodes}
+    if nodes := dts.get_compatible_nodes("zmk,physical-layout"):
+        defined_layouts = {node.get_string("display-name"): node.get_phandle_array("keys") for node in nodes}
+    elif keys_array := dts.root.get_phandle_array("keys"):
+        defined_layouts = {"Default": keys_array}
+    else:
+        raise ValueError('No `compatible = "zmk,physical-layout"` nodes nor a single `keys` property found')
 
     out_layouts = {}
     for display_name, position_bindings in defined_layouts.items():
