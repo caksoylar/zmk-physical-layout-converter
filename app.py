@@ -157,17 +157,17 @@ def main() -> None:
             st.session_state.json_field = new_val
             st.session_state.json_field_update = None
         st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed", value=get_initial_layout())
-        update_from_json = st.button("Update DTS using this")
+        update_from_json = st.button("Update DTS using this ➡️")
         if st.session_state.layouts is None or update_from_json:
             st.session_state.layouts = qmk_info_to_layouts(st.session_state.json_field)
             st.session_state.dts_field = layouts_to_dts(st.session_state.layouts)
     with dts_col:
         st.subheader(
-            "ZMK devicetree node",
+            "ZMK DTS",
             help="Docs TBD on the format",
         )
         st.text_area("Devicetree", key="dts_field", height=800, label_visibility="collapsed")
-        update_from_dts = st.button("Update JSON using this")
+        update_from_dts = st.button("⬅️Update JSON using this")
 
     if update_from_dts:
         st.session_state.layouts = dts_to_layouts(st.session_state.dts_field)
