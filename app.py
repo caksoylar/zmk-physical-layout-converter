@@ -37,6 +37,17 @@ KEY_TEMPLATE = "<&key_physical_attrs {w:>3d} {h:>3d} {x:>4d} {y:>4d} {rot} {rx:>
 PHYSICAL_ATTR_PHANDLES = {"&key_physical_attrs"}
 
 
+def _normalize_layout(qmk_spec: QmkLayout) -> QmkLayout:
+    min_x, min_y = min(k.x for k in qmk_spec.layout), min(k.y for k in qmk_spec.layout)
+    for key in qmk_spec.layout:
+        key.x -= min_x
+        key.y -= min_y
+        if key.rx is not None:
+            key.rx -= min_x
+        if key.ry is not None:
+            key.ry -= min_y
+    return qmk_spec
+
 @st.cache_data
 def _get_initial_layout():
     with open("example.json", encoding="utf-8") as f:
@@ -72,7 +83,7 @@ def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
             binding = binding_arr.split()
             assert binding[0].lstrip("&") in bindings_to_position, f"Unrecognized position binding {binding[0]}"
             keys.append(bindings_to_position[binding[0].lstrip("&")](binding[1:]))
-        out_layouts[display_name] = QmkLayout(layout=keys)
+        out_layouts[display_name] = _normalize_layout(QmkLayout(layout=keys))
     return out_layouts
 
 
@@ -134,7 +145,7 @@ def qmk_json_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
 
     if isinstance(qmk_info, list):
         return {"Default": QmkLayout(layout=qmk_info)}  # shortcut for list-only representation
-    return {name: QmkLayout(layout=val["layout"]) for name, val in qmk_info["layouts"].items()}
+    return {name: _normalize_layout(QmkLayout(layout=val["layout"])) for name, val in qmk_info["layouts"].items()}
 
 
 def ortho_to_layouts(ortho_layout: dict, cols_thumbs_notation: str) -> dict[str, QmkLayout]:
