@@ -48,6 +48,7 @@ def _normalize_layout(qmk_spec: QmkLayout) -> QmkLayout:
             key.ry -= min_y
     return qmk_spec
 
+
 @st.cache_data
 def _get_initial_layout():
     with open("example.json", encoding="utf-8") as f:
@@ -60,7 +61,9 @@ def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
     dts = DeviceTree(dts_str, None, True)
 
     def parse_binding_params(bindings):
-        params = {k: int(v.lstrip("(").rstrip(")")) / 100 for k, v in zip(("w", "h", "x", "y", "r", "rx", "ry"), bindings)}
+        params = {
+            k: int(v.lstrip("(").rstrip(")")) / 100 for k, v in zip(("w", "h", "x", "y", "r", "rx", "ry"), bindings)
+        }
         if params["r"] == 0:
             del params["rx"], params["ry"]
         return params
@@ -148,7 +151,9 @@ def qmk_json_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
     return {name: _normalize_layout(QmkLayout(layout=val["layout"])) for name, val in qmk_info["layouts"].items()}
 
 
-def ortho_to_layouts(ortho_layout: dict | None, cols_thumbs_notation: str | None, split_gap: float = 1.0) -> dict[str, QmkLayout]:
+def ortho_to_layouts(
+    ortho_layout: dict | None, cols_thumbs_notation: str | None, split_gap: float = 1.0
+) -> dict[str, QmkLayout]:
     """Given ortho specs (ortho layout description or cols+thumbs notation) convert it to the internal QMK layout format."""
     p_layout = layout_factory(
         DrawConfig(key_w=1, key_h=1, split_gap=split_gap),
@@ -157,7 +162,10 @@ def ortho_to_layouts(ortho_layout: dict | None, cols_thumbs_notation: str | None
     )
     return {
         "Default": QmkLayout(
-            layout=[{"x": key.pos.x - key.width / 2, "y": key.pos.y - key.height / 2, "w": key.width, "h": key.height} for key in p_layout.keys]
+            layout=[
+                {"x": key.pos.x - key.width / 2, "y": key.pos.y - key.height / 2, "w": key.width, "h": key.height}
+                for key in p_layout.keys
+            ]
         )
     }
 
@@ -171,7 +179,9 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
                 "split": False,
                 "rows": st.number_input("Number of rows", min_value=1, max_value=10),
                 "columns": st.number_input("Number of columns", min_value=1, max_value=20),
-                "thumbs": {"Default (1u)": 0, "MIT (1x1u)": "MIT", "2x2u": "2x2u"}[st.selectbox("Thumbs type", options=("Default (1u)", "MIT (1x1u)", "2x2u"))],
+                "thumbs": {"Default (1u)": 0, "MIT (1x1u)": "MIT", "2x2u": "2x2u"}[
+                    st.selectbox("Thumbs type", options=("Default (1u)", "MIT (1x1u)", "2x2u"))  # type: ignore
+                ],
                 "drop_pinky": st.checkbox("Drop pinky"),
                 "drop_inner": st.checkbox("Drop inner index"),
             }
