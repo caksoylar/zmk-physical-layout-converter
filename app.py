@@ -48,11 +48,13 @@ def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
     """Convert given DTS string containing physical layouts to internal QMK layout format."""
     dts = DeviceTree(dts_str, None, True)
 
-    bindings_to_position = {
-        "key_physical_attrs": lambda bindings: {
-            k: int(v.lstrip("(").rstrip(")")) / 100 for k, v in zip(("w", "h", "x", "y", "r", "rx", "ry"), bindings)
-        }
-    }
+    def parse_binding_params(bindings):
+        params = {k: int(v.lstrip("(").rstrip(")")) / 100 for k, v in zip(("w", "h", "x", "y", "r", "rx", "ry"), bindings)}
+        if params["r"] == 0:
+            del params["rx"], params["ry"]
+        return params
+
+    bindings_to_position = {"key_physical_attrs": parse_binding_params}
 
     if nodes := dts.get_compatible_nodes("zmk,physical-layout"):
         defined_layouts = {node.get_string("display-name"): node.get_phandle_array("keys") for node in nodes}
