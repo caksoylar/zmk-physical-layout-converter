@@ -194,7 +194,10 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
             }
             submitted = st.form_submit_button("Generate")
             if submitted:
-                out = ortho_to_layouts(ortho_layout=params, cols_thumbs_notation=None)
+                try:
+                    out = ortho_to_layouts(ortho_layout=params, cols_thumbs_notation=None)
+                except Exception as exc:
+                    handle_exception(st, "Failed to generate non-split layout", exc)
     with split:
         with st.form("ortho_split"):
             params = {
@@ -208,7 +211,10 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
             split_gap = st.number_input("Gap between split halves", value=1.0, min_value=0.0, max_value=10.0, step=0.5)
             submitted = st.form_submit_button("Generate")
             if submitted:
-                out = ortho_to_layouts(ortho_layout=params, cols_thumbs_notation=None, split_gap=split_gap)
+                try:
+                    out = ortho_to_layouts(ortho_layout=params, cols_thumbs_notation=None, split_gap=split_gap)
+                except Exception as exc:
+                    handle_exception(st, "Failed to generate split layout", exc)
     with cols_thumbs:
         with st.form("ortho_cpt"):
             st.caption(
@@ -218,7 +224,10 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
             split_gap = st.number_input("Gap between split halves", value=1.0, min_value=0.0, max_value=10.0, step=0.5)
             submitted = st.form_submit_button("Generate")
             if submitted:
-                out = ortho_to_layouts(ortho_layout=None, cols_thumbs_notation=cpt_spec, split_gap=split_gap)
+                try:
+                    out = ortho_to_layouts(ortho_layout=None, cols_thumbs_notation=cpt_spec, split_gap=split_gap)
+                except Exception as exc:
+                    handle_exception(st, "Failed to generate from cols+thumbs notation spec", exc)
     return out
 
 
@@ -235,8 +244,12 @@ def json_column() -> None:
     json_button = st.button("Update DTS using this ➡️")
     if json_button:
         print("1.0 updating rest from json")
-        state.layouts = qmk_json_to_layouts(state.json_field)
-        state.need_update = True
+        try:
+            state.layouts = qmk_json_to_layouts(state.json_field)
+        except Exception as exc:
+            handle_exception(st, "Failed to parse JSON", exc)
+        else:
+            state.need_update = True
 
 
 def dts_column() -> None:
@@ -251,8 +264,12 @@ def dts_column() -> None:
     dts_button = st.button("⬅️Update JSON using this")
     if dts_button:
         print("2.1 updating rest from dts")
-        state.layouts = dts_to_layouts(state.dts_field)
-        state.need_update = True
+        try:
+            state.layouts = dts_to_layouts(state.dts_field)
+        except Exception as exc:
+            handle_exception(st, "Failed to parse DTS", exc)
+        else:
+            state.need_update = True
 
 
 def svg_column() -> None:
