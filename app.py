@@ -99,7 +99,7 @@ def dts_to_layouts(dts_str: str) -> dict[str, QmkLayout]:
 
 def layout_to_svg(qmk_layout: QmkLayout) -> str:
     """Convert given internal QMK layout format to its SVG visualization."""
-    physical_layout = qmk_layout.generate(60)
+    physical_layout = qmk_layout.generate(50)
     with io.StringIO() as out:
         drawer = KeymapDrawer(
             config=DrawConfig(append_colon_to_layer_header=False, dark_mode="auto"),
