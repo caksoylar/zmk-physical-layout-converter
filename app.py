@@ -148,18 +148,58 @@ def qmk_json_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
     return {name: _normalize_layout(QmkLayout(layout=val["layout"])) for name, val in qmk_info["layouts"].items()}
 
 
-def ortho_to_layouts(ortho_layout: dict, cols_thumbs_notation: str) -> dict[str, QmkLayout]:
+def ortho_to_layouts(ortho_layout: dict | None, cols_thumbs_notation: str | None, split_gap: float = 1.0) -> dict[str, QmkLayout]:
     """Given ortho specs (ortho layout description or cols+thumbs notation) convert it to the internal QMK layout format."""
     p_layout = layout_factory(
-        DrawConfig(key_w=1, key_h=1, split_gap=1),
+        DrawConfig(key_w=1, key_h=1, split_gap=split_gap),
         ortho_layout=ortho_layout,
         cols_thumbs_notation=cols_thumbs_notation,
     )
     return {
         "Default": QmkLayout(
-            layout=[{"x": key.pos.x, "y": key.pos.y, "w": key.width, "h": key.height} for key in p_layout.keys]
+            layout=[{"x": key.pos.x - key.width / 2, "y": key.pos.y - key.height / 2, "w": key.width, "h": key.height} for key in p_layout.keys]
         )
     }
+
+
+def _ortho_form() -> dict[str, QmkLayout] | None:
+    out = None
+    nonsplit, split, cols_thumbs = st.tabs(["Non-split", "Split", "Cols+Thumbs Notation"])
+    with nonsplit:
+        with st.form("ortho_nonsplit"):
+            params = {
+                "split": False,
+                "rows": st.number_input("Number of rows", min_value=1, max_value=10),
+                "columns": st.number_input("Number of columns", min_value=1, max_value=20),
+                "thumbs": {"Default (1u)": 0, "MIT (1x1u)": "MIT", "2x2u": "2x2u"}[st.selectbox("Thumbs type", options=("Default (1u)", "MIT (1x1u)", "2x2u"))],
+                "drop_pinky": st.checkbox("Drop pinky"),
+                "drop_inner": st.checkbox("Drop inner index"),
+            }
+            submitted = st.form_submit_button("Generate")
+            if submitted:
+                out = ortho_to_layouts(ortho_layout=params, cols_thumbs_notation=None)
+    with split:
+        with st.form("ortho_split"):
+            params = {
+                "split": True,
+                "rows": st.number_input("Number of rows", min_value=1, max_value=10),
+                "columns": st.number_input("Number of columns", min_value=1, max_value=10),
+                "thumbs": st.number_input("Number of thumb keys", min_value=0, max_value=10),
+                "drop_pinky": st.checkbox("Drop pinky"),
+                "drop_inner": st.checkbox("Drop inner index"),
+            }
+            split_gap = st.number_input("Gap between split halves", value=1.0, min_value=0.0, max_value=10.0, step=0.5)
+            submitted = st.form_submit_button("Generate")
+            if submitted:
+                out = ortho_to_layouts(ortho_layout=params, cols_thumbs_notation=None, split_gap=split_gap)
+    with cols_thumbs:
+        with st.form("ortho_cpt"):
+            cpt_spec = st.text_input("Cols+Thumbs notation spec", placeholder="23333+2 3+333331")
+            split_gap = st.number_input("Gap between split halves", value=1.0, min_value=0.0, max_value=10.0, step=0.5)
+            submitted = st.form_submit_button("Generate")
+            if submitted:
+                out = ortho_to_layouts(ortho_layout=None, cols_thumbs_notation=cpt_spec, split_gap=split_gap)
+    return out
 
 
 def main() -> None:
@@ -173,7 +213,12 @@ def main() -> None:
     st.header("ZMK physical layouts converter")
     st.caption("Tool to convert and visualize physical layout representations for ZMK Studio")
 
+    with st.popover("Initialize from ortho params"):
+        ortho_layout = _ortho_form()
+
     json_col, dts_col, svg_col = st.columns([0.25, 0.4, 0.35], vertical_alignment="top")
+
+    update_from_json = False
 
     with json_col:
         st.subheader(
@@ -184,12 +229,21 @@ def main() -> None:
         if new_val := st.session_state.get("json_field_update"):
             st.session_state.json_field = new_val
             st.session_state.json_field_update = None
-            initial_value = None
-        else:
-            initial_value = _get_initial_layout()
-        st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed", value=initial_value)
-        update_from_json = st.button("Update DTS using this ➡️")
-        if st.session_state.layouts is None or update_from_json:
+            update_from_json = True
+            print("3 set json from dts")
+        elif ortho_layout:
+            st.session_state.json_field = layouts_to_json(ortho_layout)
+            update_from_json = True
+            print("4 set initial json from ortho")
+        elif st.session_state.layouts is None:
+            print("1 set initial json value")
+            st.session_state.json_field = _get_initial_layout()
+            update_from_json = True
+
+        st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed")
+        json_button = st.button("Update DTS using this ➡️")
+        if update_from_json or json_button:
+            print("2 updating rest from json")
             st.session_state.layouts = qmk_json_to_layouts(st.session_state.json_field)
             st.session_state.dts_field = layouts_to_dts(st.session_state.layouts)
 
@@ -199,12 +253,12 @@ def main() -> None:
             help="Docs TBD on the format",
         )
         st.text_area("Devicetree", key="dts_field", height=800, label_visibility="collapsed")
-        update_from_dts = st.button("⬅️Update JSON using this")
-
-    if update_from_dts:
-        st.session_state.layouts = dts_to_layouts(st.session_state.dts_field)
-        st.session_state.json_field_update = layouts_to_json(st.session_state.layouts)
-        need_rerun = True
+        dts_button = st.button("⬅️Update JSON using this")
+        if dts_button:
+            print("5 updating rest from dts")
+            st.session_state.layouts = dts_to_layouts(st.session_state.dts_field)
+            st.session_state.json_field_update = layouts_to_json(st.session_state.layouts)
+            need_rerun = True
 
     with svg_col:
         st.subheader("Visualization")
