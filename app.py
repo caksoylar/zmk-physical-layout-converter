@@ -5,6 +5,7 @@ import json
 from textwrap import indent
 
 import streamlit as st
+from streamlit import session_state as state
 
 from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.config import DrawConfig
@@ -35,6 +36,12 @@ keys  //                     w   h    x    y     rot   rx   ry
 """
 KEY_TEMPLATE = "<&key_physical_attrs {w:>3d} {h:>3d} {x:>4d} {y:>4d} {rot} {rx:>4d} {ry:>4d}>"
 PHYSICAL_ATTR_PHANDLES = {"&key_physical_attrs"}
+
+
+def handle_exception(container, message: str, exc: Exception):
+    """Display exception in given container."""
+    container.error(icon="❗", body=message)
+    container.exception(exc)
 
 
 def _normalize_layout(qmk_spec: QmkLayout) -> QmkLayout:
@@ -204,6 +211,9 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
                 out = ortho_to_layouts(ortho_layout=params, cols_thumbs_notation=None, split_gap=split_gap)
     with cols_thumbs:
         with st.form("ortho_cpt"):
+            st.caption(
+                "[Details of the spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#colsthumbs-notation-specification)"
+            )
             cpt_spec = st.text_input("Cols+Thumbs notation spec", placeholder="23333+2 3+333331")
             split_gap = st.number_input("Gap between split halves", value=1.0, min_value=0.0, max_value=10.0, step=0.5)
             submitted = st.form_submit_button("Generate")
@@ -212,73 +222,86 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
     return out
 
 
+def json_column() -> None:
+    """Contents of the json column."""
+    st.subheader(
+        "JSON format description",
+        help="QMK-like physical layout spec description, similar to `qmk_info_json` option mentioned in the "
+        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification).",
+    )
+    if state.need_update:
+        state.json_field = layouts_to_json(state.layouts)
+    st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed")
+    json_button = st.button("Update DTS using this ➡️")
+    if json_button:
+        print("1.0 updating rest from json")
+        state.layouts = qmk_json_to_layouts(state.json_field)
+        state.need_update = True
+
+
+def dts_column() -> None:
+    """Contents of the DTS column."""
+    st.subheader(
+        "ZMK DTS",
+        help="Docs TBD on the format",
+    )
+    if state.need_update:
+        state.dts_field = layouts_to_dts(state.layouts)
+    st.text_area("Devicetree", key="dts_field", height=800, label_visibility="collapsed")
+    dts_button = st.button("⬅️Update JSON using this")
+    if dts_button:
+        print("2.1 updating rest from dts")
+        state.layouts = dts_to_layouts(state.dts_field)
+        state.need_update = True
+
+
+def svg_column() -> None:
+    """Contents of the SVG column."""
+    st.subheader("Visualization")
+    svgs = {name: layout_to_svg(layout) for name, layout in state.layouts.items()}
+    tabs = st.tabs(list(svgs))
+    for i, svg in enumerate(svgs.values()):
+        tabs[i].image(svg)
+
+
 def main() -> None:
     """Main body of the web app."""
-    need_rerun = False
-    if "layouts" not in st.session_state:
-        st.session_state.layouts = None
-
     st.set_page_config(page_title="ZMK physical layout converter", page_icon=":keyboard:", layout="wide")
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 12px; }</style>')
     st.header("ZMK physical layouts converter")
     st.caption("Tool to convert and visualize physical layout representations for ZMK Studio")
 
+    if "need_update" not in state:
+        state.need_update = False
+
+    updated = state.need_update
+
+    if "layouts" not in state:
+        state.layouts = qmk_json_to_layouts(_get_initial_layout())
+        state.need_update = True
+
     with st.popover("Initialize from ortho params"):
         ortho_layout = _ortho_form()
+        if ortho_layout is not None:
+            state.layouts = ortho_layout
+            state.need_update = True
+            ortho_layout = None
 
     json_col, dts_col, svg_col = st.columns([0.25, 0.4, 0.35], vertical_alignment="top")
 
-    update_from_json = False
-
     with json_col:
-        st.subheader(
-            "JSON format description",
-            help="QMK-like physical layout spec description, similar to `qmk_info_json` option mentioned in the "
-            "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification).",
-        )
-        if new_val := st.session_state.get("json_field_update"):
-            st.session_state.json_field = new_val
-            st.session_state.json_field_update = None
-            update_from_json = True
-            print("3 set json from dts")
-        elif ortho_layout:
-            st.session_state.json_field = layouts_to_json(ortho_layout)
-            update_from_json = True
-            print("4 set initial json from ortho")
-        elif st.session_state.layouts is None:
-            print("1 set initial json value")
-            st.session_state.json_field = _get_initial_layout()
-            update_from_json = True
-
-        st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed")
-        json_button = st.button("Update DTS using this ➡️")
-        if update_from_json or json_button:
-            print("2 updating rest from json")
-            st.session_state.layouts = qmk_json_to_layouts(st.session_state.json_field)
-            st.session_state.dts_field = layouts_to_dts(st.session_state.layouts)
+        json_column()
 
     with dts_col:
-        st.subheader(
-            "ZMK DTS",
-            help="Docs TBD on the format",
-        )
-        st.text_area("Devicetree", key="dts_field", height=800, label_visibility="collapsed")
-        dts_button = st.button("⬅️Update JSON using this")
-        if dts_button:
-            print("5 updating rest from dts")
-            st.session_state.layouts = dts_to_layouts(st.session_state.dts_field)
-            st.session_state.json_field_update = layouts_to_json(st.session_state.layouts)
-            need_rerun = True
+        dts_column()
 
     with svg_col:
-        st.subheader("Visualization")
-        if st.session_state.layouts is not None:
-            svgs = {name: layout_to_svg(layout) for name, layout in st.session_state.layouts.items()}
-            tabs = st.tabs(list(svgs))
-            for i, svg in enumerate(svgs.values()):
-                tabs[i].image(svg)
+        svg_column()
 
-    if need_rerun:
+    if updated:
+        state.need_update = False
+
+    if state.need_update:
         st.rerun()
 
 
