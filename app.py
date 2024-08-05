@@ -30,11 +30,11 @@ layout_{idx}: layout_{idx} {{
 }};
 """
 KEYS_TEMPLATE = """
-keys  //                     w   h    x    y     rot   rx   ry
+keys  //                     w   h    x    y     rot    rx    ry
     = {key_attrs_string}
     ;
 """
-KEY_TEMPLATE = "<&key_physical_attrs {w:>3d} {h:>3d} {x:>4d} {y:>4d} {rot} {rx:>4d} {ry:>4d}>"
+KEY_TEMPLATE = "<&key_physical_attrs {w:>3} {h:>3} {x:>4} {y:>4} {rot:>7} {rx:>5} {ry:>5}>"
 PHYSICAL_ATTR_PHANDLES = {"&key_physical_attrs"}
 
 
@@ -123,24 +123,23 @@ def layouts_to_json(layouts_map: dict[str, QmkLayout]) -> str:
 def layouts_to_dts(layouts_map: dict[str, QmkLayout]) -> str:
     """Convert given internal QMK layout formats map to DTS representation."""
 
-    def rot_to_str(rot: float) -> str:
-        rot = int(100 * rot)
-        if rot >= 0:
-            return f"{rot:>7d}"
-        return f"{'(' + str(rot) + ')':>7}"
+    def num_to_str(num: float | int) -> str:
+        if num >= 0:
+            return str(int(num))
+        return "(" + str(int(num)) + ")"
 
     pl_nodes = []
     for idx, (name, qmk_spec) in enumerate(layouts_map.items()):
         keys = KEYS_TEMPLATE.format(
             key_attrs_string="\n    , ".join(
                 KEY_TEMPLATE.format(
-                    w=int(100 * key.w),
-                    h=int(100 * key.h),
-                    x=int(100 * key.x),
-                    y=int(100 * key.y),
-                    rot=rot_to_str(key.r),
-                    rx=int(100 * (key.rx or 0)),
-                    ry=int(100 * (key.ry or 0)),
+                    w=num_to_str(100 * key.w),
+                    h=num_to_str(100 * key.h),
+                    x=num_to_str(100 * key.x),
+                    y=num_to_str(100 * key.y),
+                    rot=num_to_str(100 * key.r),
+                    rx=num_to_str(100 * (key.rx or 0)),
+                    ry=num_to_str(100 * (key.ry or 0)),
                 )
                 for key in qmk_spec.layout
             )
