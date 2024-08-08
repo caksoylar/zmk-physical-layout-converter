@@ -235,7 +235,8 @@ def json_column() -> None:
     st.subheader(
         "JSON format description",
         help="QMK-like physical layout spec description, similar to `qmk_info_json` option mentioned in the "
-        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification).",
+        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification). "
+        "Consider using [Keymap Layout Helper](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!",
     )
     if state.need_update:
         state.json_field = layouts_to_json(state.layouts)
