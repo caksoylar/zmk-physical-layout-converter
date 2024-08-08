@@ -185,8 +185,8 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
                 "split": False,
                 "rows": st.number_input("Number of rows", min_value=1, max_value=10),
                 "columns": st.number_input("Number of columns", min_value=1, max_value=20),
-                "thumbs": {"Default (1u)": 0, "MIT (1x1u)": "MIT", "2x2u": "2x2u"}[
-                    st.selectbox("Thumbs type", options=("Default (1u)", "MIT (1x1u)", "2x2u"))  # type: ignore
+                "thumbs": {"Default (1u)": 0, "MIT (1x2u)": "MIT", "2x2u": "2x2u"}[
+                    st.selectbox("Thumbs type", options=("Default (1u)", "MIT (1x2u)", "2x2u"))  # type: ignore
                 ],
                 "drop_pinky": st.checkbox("Drop pinky"),
                 "drop_inner": st.checkbox("Drop inner index"),
