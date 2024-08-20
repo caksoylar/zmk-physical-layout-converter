@@ -188,8 +188,6 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
                 "thumbs": {"Default (1u)": 0, "MIT (1x2u)": "MIT", "2x2u": "2x2u"}[
                     st.selectbox("Thumbs type", options=("Default (1u)", "MIT (1x2u)", "2x2u"))  # type: ignore
                 ],
-                "drop_pinky": st.checkbox("Drop pinky"),
-                "drop_inner": st.checkbox("Drop inner index"),
             }
             submitted = st.form_submit_button("Generate")
             if submitted:
