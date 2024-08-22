@@ -274,9 +274,8 @@ def svg_column() -> None:
     """Contents of the SVG column."""
     st.subheader("Visualization")
     svgs = {name: layout_to_svg(layout) for name, layout in state.layouts.items()}
-    tabs = st.tabs(list(svgs))
-    for i, svg in enumerate(svgs.values()):
-        tabs[i].image(svg)
+    shown = st.selectbox(label="Select", label_visibility="collapsed", options=list(svgs))
+    st.image(svgs[shown])
 
 
 def main() -> None:
