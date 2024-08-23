@@ -6,6 +6,7 @@ from textwrap import indent
 
 import streamlit as st
 from streamlit import session_state as state
+import pandas as pd
 
 from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.config import DrawConfig
@@ -36,6 +37,17 @@ keys  //                     w   h    x    y     rot    rx    ry
 """
 KEY_TEMPLATE = "<&key_physical_attrs {w:>3} {h:>3} {x:>4} {y:>4} {rot:>7} {rx:>5} {ry:>5}>"
 PHYSICAL_ATTR_PHANDLES = {"&key_physical_attrs"}
+
+COL_CFG = {
+    "_index": st.column_config.NumberColumn("Index"),
+    "x": st.column_config.NumberColumn(format="%.2f", min_value=0, required=True),
+    "y": st.column_config.NumberColumn(format="%.2f", min_value=0, required=True),
+    "w": st.column_config.NumberColumn(min_value=0),
+    "h": st.column_config.NumberColumn(min_value=0),
+    "r": st.column_config.NumberColumn(min_value=-180, max_value=180),
+    "rx": st.column_config.NumberColumn(format="%.2f"),
+    "ry": st.column_config.NumberColumn(format="%.2f"),
+}
 
 
 def handle_exception(container, message: str, exc: Exception):
@@ -148,6 +160,14 @@ def layouts_to_dts(layouts_map: dict[str, QmkLayout]) -> str:
     return DTS_TEMPLATE.format(pl_nodes=indent("\n".join(pl_nodes), "    "))
 
 
+def layout_to_df(layout):
+    """Get a pandas DF from given QmkLayout."""
+    return pd.DataFrame(
+        layout.model_dump(exclude_defaults=True, exclude_unset=True)["layout"],
+        columns=["x", "y", "w", "h", "r", "rx", "ry"],
+    )
+
+
 def qmk_json_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
     """Convert given QMK-style JSON string layouts format map to internal QMK layout formats map."""
     qmk_info = json.loads(qmk_info_str)
@@ -228,16 +248,36 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
     return out
 
 
+@st.experimental_dialog("Edit layout")
+def df_editor():
+    """Show the dialog box that has the dataframe editor."""
+    selected = st.selectbox("Layout to edit", list(state.layouts))
+    df = st.data_editor(
+        layout_to_df(state.layouts[selected]),
+        column_config=COL_CFG,
+        hide_index=False,
+        height=600,
+        use_container_width=True,
+    )
+    if st.button("Update"):
+        state.layouts[selected] = QmkLayout(
+            layout=[{k: v for k, v in record.items() if not pd.isna(v)} for record in df.to_dict("records")]
+        )
+        state.need_update = True
+        st.rerun()
+
+
 def json_column() -> None:
     """Contents of the json column."""
     st.subheader(
-        "JSON format description",
+        "JSON description",
         help="QMK-like physical layout spec description, similar to `qmk_info_json` option mentioned in the "
         "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification). "
         "Consider using [Keymap Layout Helper](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!",
     )
     if state.need_update:
         state.json_field = layouts_to_json(state.layouts)
+
     st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed")
     json_button = st.button("Update DTS using this ➡️")
     if json_button:
@@ -300,6 +340,9 @@ def main() -> None:
             state.layouts = ortho_layout
             state.need_update = True
             ortho_layout = None
+
+    if st.button("Edit with dataframe editor"):
+        df_editor()
 
     json_col, dts_col, svg_col = st.columns([0.25, 0.4, 0.35], vertical_alignment="top")
 
