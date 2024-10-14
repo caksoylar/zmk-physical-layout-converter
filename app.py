@@ -137,8 +137,8 @@ def layouts_to_dts(layouts_map: dict[str, QmkLayout]) -> str:
 
     def num_to_str(num: float | int) -> str:
         if num >= 0:
-            return str(int(num))
-        return "(" + str(int(num)) + ")"
+            return str(round(num))
+        return "(" + str(round(num)) + ")"
 
     pl_nodes = []
     for idx, (name, qmk_spec) in enumerate(layouts_map.items()):
