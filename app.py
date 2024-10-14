@@ -294,7 +294,7 @@ def dts_column() -> None:
     """Contents of the DTS column."""
     st.subheader(
         "ZMK DTS",
-        help="Docs TBD on the format",
+        help="ZMK [physical layout specification](https://zmk.dev/docs/development/hardware-integration/physical-layouts)",
     )
     if state.need_update:
         state.dts_field = layouts_to_dts(state.layouts)
