@@ -2,7 +2,12 @@
 
 import io
 import json
+import tempfile
+import zipfile
 from textwrap import indent
+from pathlib import Path
+from urllib.request import urlopen
+from multiprocessing import Pool
 
 import streamlit as st
 from streamlit import session_state as state
@@ -196,6 +201,34 @@ def ortho_to_layouts(
     }
 
 
+def _read_layout(common_path: Path, path: Path) -> tuple[str, None | dict[str, QmkLayout]]:
+    name = str(path.relative_to(common_path))
+    try:
+        with open(path, encoding="utf-8") as f:
+            return name, dts_to_layouts(f.read())
+    except ValueError:
+        return name, None
+
+
+@st.cache_data
+def get_shared_layouts() -> dict[str, dict[str, QmkLayout]]:
+    """Get shared layouts from ZMK repo so they can be used as a starting point."""
+    with urlopen("https://api.github.com/repos/zmkfirmware/zmk/zipball/main") as f:
+        zip_bytes = f.read()
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zipped:
+            zipped.extractall(tmpdir)
+        common_layouts = next(Path(tmpdir).iterdir()) / "app" / "dts" / "layouts"
+
+        with Pool() as mp:
+            out = {
+                k: v
+                for k, v in mp.starmap(_read_layout, ((common_layouts, path) for path in common_layouts.rglob("*.dtsi")))
+                if v is not None
+            }
+    return dict(sorted(out.items(), key=lambda v: v[0]))
+
+
 def _ortho_form() -> dict[str, QmkLayout] | None:
     out = None
     nonsplit, split, cols_thumbs = st.tabs(["Non-split", "Split", "Cols+Thumbs Notation"])
@@ -334,15 +367,36 @@ def main() -> None:
         state.layouts = qmk_json_to_layouts(_get_initial_layout())
         state.need_update = True
 
-    with st.popover("Initialize from ortho params"):
-        ortho_layout = _ortho_form()
-        if ortho_layout is not None:
-            state.layouts = ortho_layout
-            state.need_update = True
-            ortho_layout = None
+    gen_cols = st.columns([0.2, 0.25, 0.2, 0.35])
+    with gen_cols[0]:
+        with st.popover("Initialize from ortho params", use_container_width=True):
+            ortho_layout = _ortho_form()
+            if ortho_layout is not None:
+                state.layouts = ortho_layout
+                state.need_update = True
+                ortho_layout = None
 
-    if st.button("Edit with dataframe editor"):
-        df_editor()
+    with gen_cols[1]:
+        with st.popover("Initialize from ZMK shared layouts", use_container_width=True):
+            st.write("Choose one of the shared layouts in ZMK as a starting point to edit.")
+            st.write(
+                ":warning: If you can use the layouts without modifications, prefer `#include`ing them in your config. "
+                "See [`corne`](https://github.com/zmkfirmware/zmk/blob/main/app/boards/shields/corne/corne.dtsi#L9-L18) "
+                "or [`bt60`](https://github.com/zmkfirmware/zmk/blob/main/app/boards/arm/bt60/bt60_v1.dts#L9-L121) as examples."
+            )
+            shared_layouts = get_shared_layouts()
+            with st.form("shared_layouts"):
+                selected = st.selectbox("Shared layouts", list(shared_layouts))
+                if st.form_submit_button("Use this") and selected is not None:
+                    state.layouts = shared_layouts[selected]
+                    state.need_update = True
+
+    with gen_cols[2]:
+        if st.button("Edit with dataframe editor", use_container_width=True):
+            df_editor()
+
+    with gen_cols[3]:
+        st.link_button("Tool to edit position maps", "https://zmk-layout-helper.netlify.app/")
 
     json_col, dts_col, svg_col = st.columns([0.25, 0.4, 0.35], vertical_alignment="top")
 
