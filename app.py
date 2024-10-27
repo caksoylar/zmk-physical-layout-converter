@@ -223,7 +223,9 @@ def get_shared_layouts() -> dict[str, dict[str, QmkLayout]]:
         with Pool() as mp:
             out = {
                 k: v
-                for k, v in mp.starmap(_read_layout, ((common_layouts, path) for path in common_layouts.rglob("*.dtsi")))
+                for k, v in mp.starmap(
+                    _read_layout, ((common_layouts, path) for path in common_layouts.rglob("*.dtsi"))
+                )
                 if v is not None
             }
     return dict(sorted(out.items(), key=lambda v: v[0]))
@@ -307,6 +309,7 @@ def json_column() -> None:
         help="QMK-like physical layout spec description, similar to `qmk_info_json` option mentioned in the "
         "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification). "
         "Consider using [Keymap Layout Helper](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!",
+        anchor=False,
     )
     if state.need_update:
         state.json_field = layouts_to_json(state.layouts)
@@ -328,6 +331,7 @@ def dts_column() -> None:
     st.subheader(
         "ZMK DTS",
         help="ZMK [physical layout specification](https://zmk.dev/docs/development/hardware-integration/physical-layouts)",
+        anchor=False,
     )
     if state.need_update:
         state.dts_field = layouts_to_dts(state.layouts)
@@ -345,7 +349,7 @@ def dts_column() -> None:
 
 def svg_column() -> None:
     """Contents of the SVG column."""
-    st.subheader("Visualization")
+    st.subheader("Visualization", anchor=False)
     svgs = {name: layout_to_svg(layout) for name, layout in state.layouts.items()}
     shown = st.selectbox(label="Select", label_visibility="collapsed", options=list(svgs))
     st.image(svgs[shown])
@@ -355,7 +359,7 @@ def main() -> None:
     """Main body of the web app."""
     st.set_page_config(page_title="ZMK physical layout converter", page_icon=":keyboard:", layout="wide")
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 12px; }</style>')
-    st.header("ZMK physical layouts converter")
+    st.header("ZMK physical layouts converter", anchor=False)
     st.caption("Tool to convert and visualize physical layout representations for ZMK Studio")
 
     if "need_update" not in state:
