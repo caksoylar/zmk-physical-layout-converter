@@ -1,4 +1,4 @@
-git+https://github.com/caksoylar/keymap-drawer@main
+keymap-drawer==0.18.1
 
 
 
