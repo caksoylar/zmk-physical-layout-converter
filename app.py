@@ -2,12 +2,14 @@
 
 import io
 import json
+import os
 import tempfile
 import zipfile
 from textwrap import indent
 from pathlib import Path
 from urllib.request import urlopen
 from multiprocessing import Pool
+from itertools import starmap
 
 import streamlit as st
 from streamlit import session_state as state
@@ -42,6 +44,9 @@ keys  //                     w   h    x    y     rot    rx    ry
 """
 KEY_TEMPLATE = "<&key_physical_attrs {w:>3} {h:>3} {x:>4} {y:>4} {rot:>7} {rx:>5} {ry:>5}>"
 PHYSICAL_ATTR_PHANDLES = {"&key_physical_attrs"}
+
+IS_STREAMLIT_CLOUD = os.getenv("USER") == "appuser"
+
 
 COL_CFG = {
     "_index": st.column_config.NumberColumn("Index"),
@@ -220,15 +225,14 @@ def get_shared_layouts() -> dict[str, dict[str, QmkLayout]]:
             zipped.extractall(tmpdir)
         common_layouts = next(Path(tmpdir).iterdir()) / "app" / "dts" / "layouts"
 
-        with Pool() as mp:
-            out = {
-                k: v
-                for k, v in mp.starmap(
-                    _read_layout, ((common_layouts, path) for path in common_layouts.rglob("*.dtsi"))
+        if IS_STREAMLIT_CLOUD:
+            out = dict(starmap(_read_layout, ((common_layouts, path) for path in common_layouts.rglob("*.dtsi"))))
+        else:
+            with Pool() as mp:
+                out = dict(
+                    mp.starmap(_read_layout, ((common_layouts, path) for path in common_layouts.rglob("*.dtsi")))
                 )
-                if v is not None
-            }
-    return dict(sorted(out.items(), key=lambda v: v[0]))
+        return {k: v for k in sorted(out) if (v := out[k]) is not None}
 
 
 def _ortho_form() -> dict[str, QmkLayout] | None:
