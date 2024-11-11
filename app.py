@@ -287,7 +287,7 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
     return out
 
 
-@st.experimental_dialog("Edit layout")
+@st.dialog("Edit layout")
 def df_editor():
     """Show the dialog box that has the dataframe editor."""
     selected = st.selectbox("Layout to edit", list(state.layouts))
@@ -312,7 +312,7 @@ def json_column() -> None:
         "JSON description",
         help="QMK-like physical layout spec description, similar to `qmk_info_json` option mentioned in the "
         "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification). "
-        "Consider using [Keymap Layout Helper](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!",
+        "Consider using [Keymap Layout Helper :material/open_in_new:](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!",
         anchor=False,
     )
     if state.need_update:
@@ -404,7 +404,7 @@ def main() -> None:
             df_editor()
 
     with gen_cols[3]:
-        st.link_button("Tool to edit position maps", "https://zmk-layout-helper.netlify.app/")
+        st.link_button("Tool to edit position maps :material/open_in_new:", "https://zmk-layout-helper.netlify.app/")
 
     json_col, dts_col, svg_col = st.columns([0.25, 0.4, 0.35], vertical_alignment="top")
 
