@@ -28,12 +28,12 @@ DTS_TEMPLATE = """\
 }};
 """
 PL_TEMPLATE = """\
-layout_{idx}: layout_{idx} {{
+physical_layout{idx}: physical_layout_{idx} {{
     compatible = "zmk,physical-layout";
     display-name = "{name}";
 
-    kscan = <&kscan_{idx}>;
-    transform = <&matrix_transform_{idx}>;
+    kscan = <&kscan{idx}>;
+    transform = <&matrix_transform{idx}>;
 {keys}\
 }};
 """
