@@ -3,6 +3,7 @@
 import io
 import json
 import os
+import re
 import tempfile
 import zipfile
 from textwrap import indent
@@ -139,7 +140,7 @@ def layouts_to_json(layouts_map: dict[str, QmkLayout]) -> str:
         display_name: {"layout": qmk_layout.model_dump(exclude_defaults=True, exclude_unset=True)["layout"]}
         for display_name, qmk_layout in layouts_map.items()
     }
-    return json.dumps({"layouts": out_layouts}, indent=2)
+    return re.sub(r"\n {10}|\n {8}(?=\})", " ", json.dumps({"layouts": out_layouts}, indent=2))
 
 
 def layouts_to_dts(layouts_map: dict[str, QmkLayout]) -> str:
