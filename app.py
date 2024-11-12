@@ -308,13 +308,12 @@ def df_editor():
 
 def json_column() -> None:
     """Contents of the json column."""
-    st.subheader(
-        "JSON description",
-        help="QMK-like physical layout spec description, similar to `qmk_info_json` option mentioned in the "
-        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification). "
-        "Consider using [Keymap Layout Helper :material/open_in_new:](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!",
-        anchor=False,
-    )
+    st.subheader("JSON description", anchor=False)
+    with st.container(height=45, border=False):
+        st.caption(
+            "QMK-like physical layout spec description. "
+            "Consider using [Keymap Layout Helper :material/open_in_new:](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!"
+        )
     if state.need_update:
         state.json_field = layouts_to_json(state.layouts)
 
@@ -334,9 +333,13 @@ def dts_column() -> None:
     """Contents of the DTS column."""
     st.subheader(
         "ZMK DTS",
-        help="ZMK [physical layout specification](https://zmk.dev/docs/development/hardware-integration/physical-layouts)",
         anchor=False,
     )
+    with st.container(height=45, border=False):
+        st.caption(
+            "Physical layout in ZMK [physical layout specification :material/open_in_new:]"
+            "(https://zmk.dev/docs/development/hardware-integration/physical-layouts#optional-keys-property) format."
+        )
     if state.need_update:
         state.dts_field = layouts_to_dts(state.layouts)
     st.text_area("Devicetree", key="dts_field", height=800, label_visibility="collapsed")
