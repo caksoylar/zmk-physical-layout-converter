@@ -443,7 +443,7 @@ def main() -> None:
     with svg_col:
         svg_column()
 
-    permabutton = st.button(label="Get permalink to layout")
+    permabutton = st.button(label="Generate permalink to layout")
     if permabutton:
         st.code(get_permalink(state.json_field), language=None, wrap_lines=True)
 
