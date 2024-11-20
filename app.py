@@ -1,5 +1,7 @@
 """Converter between QMK-like and ZMK Studio DTS physical layout formats, with visualizer."""
 
+import base64
+import gzip
 import io
 import json
 import os
@@ -8,6 +10,7 @@ import tempfile
 import zipfile
 from textwrap import indent
 from pathlib import Path
+from urllib.parse import quote_from_bytes, unquote_to_bytes
 from urllib.request import urlopen
 from multiprocessing import Pool
 from itertools import starmap
@@ -21,6 +24,7 @@ from keymap_drawer.config import DrawConfig
 from keymap_drawer.physical_layout import layout_factory, QmkLayout
 from keymap_drawer.parse.dts import DeviceTree
 
+APP_URL = "https://zmk-physical-layout-converter.streamlit.app/"
 DTS_TEMPLATE = """\
 #include <physical_layouts.dtsi>
 
@@ -77,6 +81,17 @@ def _normalize_layout(qmk_spec: QmkLayout) -> QmkLayout:
         if key.ry is not None:
             key.ry -= min_y
     return qmk_spec
+
+
+def get_permalink(keymap_yaml: str) -> str:
+    """Encode a keymap using a compressed base64 string and place it in query params to create a permalink."""
+    b64_bytes = base64.b64encode(gzip.compress(keymap_yaml.encode("utf-8"), mtime=0), altchars=b"-_")
+    return f"{APP_URL}?layout={quote_from_bytes(b64_bytes)}"
+
+
+def decode_permalink_param(param: str) -> str:
+    """Get a compressed base64 string from query params and decode it to keymap YAML."""
+    return gzip.decompress(base64.b64decode(unquote_to_bytes(param), altchars=b"-_")).decode("utf-8")
 
 
 @st.cache_data
@@ -375,6 +390,13 @@ def main() -> None:
 
     updated = state.need_update
 
+    if layout_json := st.query_params.get("layout"):
+        state.layouts = qmk_json_to_layouts(decode_permalink_param(layout_json))
+        state.need_update = True
+        print("0.0 read json from query params")
+        st.query_params.clear()
+        st.rerun()
+
     if "layouts" not in state:
         state.layouts = qmk_json_to_layouts(_get_initial_layout())
         state.need_update = True
@@ -420,6 +442,11 @@ def main() -> None:
 
     with svg_col:
         svg_column()
+
+    permabutton = st.button(label="Get permalink to layout")
+    if permabutton:
+        st.code(get_permalink(state.json_field), language=None, wrap_lines=True)
+
 
     if updated:
         state.need_update = False
