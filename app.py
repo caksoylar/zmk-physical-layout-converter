@@ -322,6 +322,11 @@ def df_editor():
         st.rerun()
 
 
+@st.dialog("Layout permalink", width="large")
+def show_permalink():
+    st.code(get_permalink(state.json_field), language=None, wrap_lines=True)
+
+
 def json_column() -> None:
     """Contents of the json column."""
     st.subheader("JSON description", anchor=False)
@@ -334,7 +339,7 @@ def json_column() -> None:
         state.json_field = layouts_to_json(state.layouts)
 
     st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed")
-    json_button = st.button("Update DTS using this ➡️")
+    json_button = st.button("Update DTS using this ➡️", use_container_width=True)
     if json_button:
         print("1.0 updating rest from json")
         try:
@@ -359,7 +364,7 @@ def dts_column() -> None:
     if state.need_update:
         state.dts_field = layouts_to_dts(state.layouts)
     st.text_area("Devicetree", key="dts_field", height=800, label_visibility="collapsed")
-    dts_button = st.button("⬅️Update JSON using this")
+    dts_button = st.button("⬅️Update JSON using this", use_container_width=True)
     if dts_button:
         print("2.1 updating rest from dts")
         try:
@@ -445,8 +450,7 @@ def main() -> None:
 
     permabutton = st.button(label="Generate permalink to layout")
     if permabutton:
-        st.code(get_permalink(state.json_field), language=None, wrap_lines=True)
-
+        show_permalink()
 
     if updated:
         state.need_update = False
