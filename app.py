@@ -333,7 +333,8 @@ def json_column() -> None:
     with st.container(height=45, border=False):
         st.caption(
             "QMK-like physical layout spec description. "
-            "Consider using [Keymap Layout Helper :material/open_in_new:](https://nickcoutsos.github.io/keymap-layout-tools/) to edit!"
+            "Consider using [Keymap Layout Helper :material/open_in_new:](https://nickcoutsos.github.io/keymap-layout-tools/) to edit "
+            "or import from KLE/KiCad!"
         )
     if state.need_update:
         state.json_field = layouts_to_json(state.layouts)
