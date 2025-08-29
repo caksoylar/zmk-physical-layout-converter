@@ -322,7 +322,7 @@ def df_editor():
         st.rerun()
 
 
-@st.dialog("Layout permalink", width="large")
+@st.dialog("Layout permalink", width="medium")
 def show_permalink():
     st.code(get_permalink(state.json_field), language=None, wrap_lines=True)
 
@@ -407,8 +407,7 @@ def main() -> None:
         state.layouts = qmk_json_to_layouts(_get_initial_layout())
         state.need_update = True
 
-    gen_cols = st.columns([0.2, 0.25, 0.2, 0.35])
-    with gen_cols[0]:
+    with st.container(horizontal=True):
         with st.popover("Initialize from ortho params", use_container_width=True):
             ortho_layout = _ortho_form()
             if ortho_layout is not None:
@@ -416,7 +415,6 @@ def main() -> None:
                 state.need_update = True
                 ortho_layout = None
 
-    with gen_cols[1]:
         with st.popover("Initialize from ZMK shared layouts", use_container_width=True):
             st.write("Choose one of the shared layouts in ZMK as a starting point to edit.")
             st.write(
@@ -431,11 +429,9 @@ def main() -> None:
                     state.layouts = shared_layouts[selected]
                     state.need_update = True
 
-    with gen_cols[2]:
         if st.button("Edit with dataframe editor", use_container_width=True):
             df_editor()
 
-    with gen_cols[3]:
         st.link_button("Tool to edit position maps :material/open_in_new:", "https://zmk-layout-helper.netlify.app/")
 
     json_col, dts_col, svg_col = st.columns([0.25, 0.4, 0.35], vertical_alignment="top")

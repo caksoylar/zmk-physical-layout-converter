@@ -2,6 +2,6 @@ keymap-drawer==0.18.1
 
 
 
-streamlit==1.41.0
+streamlit==1.49.0
 streamlit-code-editor==0.1.14
 timeout-decorator
