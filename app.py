@@ -312,7 +312,7 @@ def df_editor():
         column_config=COL_CFG,
         hide_index=False,
         height=600,
-        use_container_width=True,
+        width="stretch",
     )
     if st.button("Update"):
         state.layouts[selected] = QmkLayout(
@@ -340,7 +340,7 @@ def json_column() -> None:
         state.json_field = layouts_to_json(state.layouts)
 
     st.text_area("JSON layout", key="json_field", height=800, label_visibility="collapsed")
-    json_button = st.button("Update DTS using this ➡️", use_container_width=True)
+    json_button = st.button("Update DTS using this ➡️", width="stretch")
     if json_button:
         print("1.0 updating rest from json")
         try:
@@ -365,7 +365,7 @@ def dts_column() -> None:
     if state.need_update:
         state.dts_field = layouts_to_dts(state.layouts)
     st.text_area("Devicetree", key="dts_field", height=800, label_visibility="collapsed")
-    dts_button = st.button("⬅️Update JSON using this", use_container_width=True)
+    dts_button = st.button("⬅️Update JSON using this", width="stretch")
     if dts_button:
         print("2.1 updating rest from dts")
         try:
@@ -408,14 +408,14 @@ def main() -> None:
         state.need_update = True
 
     with st.container(horizontal=True):
-        with st.popover("Initialize from ortho params", use_container_width=True):
+        with st.popover("Initialize from ortho params", width="stretch"):
             ortho_layout = _ortho_form()
             if ortho_layout is not None:
                 state.layouts = ortho_layout
                 state.need_update = True
                 ortho_layout = None
 
-        with st.popover("Initialize from ZMK shared layouts", use_container_width=True):
+        with st.popover("Initialize from ZMK shared layouts", width="stretch"):
             st.write("Choose one of the shared layouts in ZMK as a starting point to edit.")
             st.write(
                 ":warning: If you can use the layouts without modifications, prefer `#include`ing them in your config. "
@@ -429,7 +429,7 @@ def main() -> None:
                     state.layouts = shared_layouts[selected]
                     state.need_update = True
 
-        if st.button("Edit with dataframe editor", use_container_width=True):
+        if st.button("Edit with dataframe editor", width="stretch"):
             df_editor()
 
         st.link_button("Tool to edit position maps :material/open_in_new:", "https://zmk-layout-helper.netlify.app/")
