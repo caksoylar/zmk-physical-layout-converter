@@ -48,14 +48,14 @@ def decode_permalink_param(param: str) -> str:
     return gzip.decompress(base64.b64decode(unquote_to_bytes(param), altchars=b"-_")).decode("utf-8")
 
 
-def layout_to_svg(qmk_layout: QmkLayout) -> str:
+def layout_to_svg(qmk_layout: QmkLayout, show_idx: bool) -> str:
     """Convert given internal QMK layout format to its SVG visualization."""
     physical_layout = qmk_layout.generate(50)
     with io.StringIO() as out:
         drawer = KeymapDrawer(
             config=DrawConfig(append_colon_to_layer_header=False, dark_mode="auto"),
             out=out,
-            layers={"": list(range(len(physical_layout)))},
+            layers={"": list(range(len(physical_layout))) if show_idx else [""] * len(physical_layout)},
             layout=physical_layout,
         )
         drawer.print_board()
@@ -156,10 +156,10 @@ def show_permalink():
     st.code(get_permalink(layouts_to_json(state.layouts)), language=None, wrap_lines=True)
 
 
-def svg_column() -> None:
+def svg_column(show_idx: bool) -> None:
     """Contents of the SVG column."""
     st.subheader("Visualization", anchor=False)
-    svg = layout_to_svg(state.layouts["Default"])
+    svg = layout_to_svg(state.layouts["Default"], show_idx)
     # shown = st.selectbox(label="Select", label_visibility="collapsed", options=list(svgs))
     st.image(svg)
 
@@ -190,8 +190,9 @@ def main() -> None:
             state.layouts = ortho_layout
             ortho_layout = None
 
+    show_idx = st.checkbox("Show key indices")
     with st.container(horizontal_alignment="center"):
-        svg_column()
+        svg_column(show_idx)
 
     permabutton = st.button(label="Generate permalink to layout")
     if permabutton:
