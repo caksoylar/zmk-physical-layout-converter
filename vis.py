@@ -83,7 +83,7 @@ def qmk_json_to_layouts(qmk_info_str: str) -> dict[str, QmkLayout]:
 def ortho_to_layouts(
     ortho_layout: dict | None, cols_thumbs_notation: str | None, split_gap: float = 1.0
 ) -> dict[str, QmkLayout]:
-    """Given ortho specs (ortho layout description or cols+thumbs notation) convert it to the internal QMK layout format."""
+    """Given ortho s (ortho layout description or cols+thumbs notation) convert it to the internal QMK layout format."""
     p_layout = layout_factory(
         DrawConfig(key_w=1, key_h=1, split_gap=split_gap),
         ortho_layout=ortho_layout,
@@ -138,7 +138,7 @@ def _ortho_form() -> dict[str, QmkLayout] | None:
     with cols_thumbs:
         with st.form("ortho_cpt"):
             st.caption(
-                "[Details of the spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#colsthumbs-notation-specification)"
+                "[Details of the spec](https://github.com/caksoylar/keymap-drawer/blob/main/PHYSICAL_LAYOUTS.md#colsthumbs-notation-specification)"
             )
             cpt_spec = st.text_input("Cols+Thumbs notation spec", placeholder="23333+2 3+333331")
             split_gap = st.number_input("Gap between split halves", value=1.0, min_value=0.0, max_value=10.0, step=0.5)
