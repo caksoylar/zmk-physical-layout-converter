@@ -190,7 +190,7 @@ def main() -> None:
             state.layouts = ortho_layout
             ortho_layout = None
 
-    show_idx = st.checkbox("Show key indices")
+    show_idx = st.toggle("Show key indices")
     with st.container(horizontal_alignment="center"):
         svg_column(show_idx)
 
