@@ -176,7 +176,7 @@ def main() -> None:
         st.rerun()
     elif layout_cpt := st.query_params.get("cpt"):
         layout_cpt = layout_cpt.replace(" ", "+")
-        state.layouts = ortho_to_layouts(ortho_layout=None, cols_thumbs_notation=layout_cpt, split_gap=1.0)
+        state.layouts = ortho_to_layouts(ortho_layout=None, cols_thumbs_notation=layout_cpt, split_gap=float(st.query_params.get("gap", "1.0")))
         print("0.0 read cpt from query params")
         st.query_params.clear()
         st.rerun()
